@@ -30,8 +30,12 @@ session = requests.Session()
 def read_cache():
     if not os.path.exists(CACHE_FILE):
         return {}
-    with open(CACHE_FILE, "r") as f:
-        return json.load(f)
+    try:
+        with open(CACHE_FILE, "r") as f:
+            return json.load(f)
+    except json.JSONDecodeError:
+        # If there is a JSON decode error, return an empty dictionary
+        return {}
 
 
 def write_cache(cache):
