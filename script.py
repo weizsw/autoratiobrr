@@ -1,8 +1,11 @@
+import json
 import os
-import argparse
-import requests
 import time
+from datetime import datetime, timedelta
+
+import requests
 from requests.exceptions import RequestException
+
 
 def get_env_variable(var_name):
     value = os.getenv(var_name)
@@ -10,15 +13,45 @@ def get_env_variable(var_name):
         raise EnvironmentError(f"The environment variable {var_name} is not set.")
     return value
 
-DRY_RUN = os.getenv('DRY_RUN', 'false').lower() in ['true', '1', 't']
-SCHEDULE = int(os.getenv('SCHEDULE', '30'))
-QB_URL = get_env_variable('QB_URL')
-QB_USERNAME = get_env_variable('QB_USERNAME')
-QB_PASSWORD = get_env_variable('QB_PASSWORD')
-CATEGORY_NAME = get_env_variable('CATEGORY_NAME')
-TAG_NAME = get_env_variable('TAG_NAME')
+
+CACHE_EXPIRY_DAYS = int(os.getenv("CACHE_EXPIRY_DAYS", "14"))
+CACHE_FILE = "torrent_cache.json"
+DRY_RUN = os.getenv("DRY_RUN", "false").lower() in ["true", "1", "t"]
+SCHEDULE = int(os.getenv("SCHEDULE", "30"))
+QB_URL = get_env_variable("QB_URL")
+QB_USERNAME = get_env_variable("QB_USERNAME")
+QB_PASSWORD = get_env_variable("QB_PASSWORD")
+CATEGORY_NAME = get_env_variable("CATEGORY_NAME")
+TAG_NAME = get_env_variable("TAG_NAME")
 
 session = requests.Session()
+
+
+def read_cache():
+    if not os.path.exists(CACHE_FILE):
+        return {}
+    with open(CACHE_FILE, "r") as f:
+        return json.load(f)
+
+
+def write_cache(cache):
+    with open(CACHE_FILE, "w") as f:
+        json.dump(cache, f, indent=4)
+
+
+def is_torrent_cached(torrent_hash, cache):
+    """Check if the torrent is in the cache and if the cache is still valid."""
+    if torrent_hash in cache:
+        cached_time = datetime.fromisoformat(cache[torrent_hash])
+        if datetime.now() < cached_time + timedelta(days=CACHE_EXPIRY_DAYS):
+            return True
+    return False
+
+
+def cache_torrent(torrent_hash, cache):
+    """Cache the torrent with the current timestamp."""
+    cache[torrent_hash] = datetime.now().isoformat()
+    write_cache(cache)
 
 
 def qb_login(url, username, password):
@@ -96,8 +129,12 @@ def main():
     qb_login(QB_URL, QB_USERNAME, QB_PASSWORD)
 
     cross_seed_torrents = get_torrents_by_tag(QB_URL, TAG_NAME)
+    cache = read_cache()
+    updated = False
     if cross_seed_torrents:
         for torrent in cross_seed_torrents:
+            if is_torrent_cached(torrent["hash"], cache):
+                continue
             print(f"Name: {torrent['name']}")
             print(f"State: {torrent['state']}")
             print(f"Hash: {torrent['hash']}")
@@ -115,7 +152,12 @@ def main():
                     original_torrent.get("ratio_limit", -1),
                     dry_run=DRY_RUN,
                 )
+                cache_torrent(torrent["hash"], cache)
+                updated = True
                 print("---")
+    if not updated:
+        print("No torrents updated")
+
 
 if __name__ == "__main__":
     if SCHEDULE > 0:
