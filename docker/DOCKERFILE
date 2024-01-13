@@ -1,28 +1,20 @@
-# Use the official lightweight Python image.
-# https://hub.docker.com/_/python
-FROM python:3.10-slim
+# Use an official Python runtime as a parent image
+FROM python:3.9-slim
 
-# Set environment variables to non-interactive (this prevents some prompts)
-ENV DEBIAN_FRONTEND=noninteractive
+# Set the working directory to /app
+WORKDIR /app
 
-# Set the working directory in the container
-WORKDIR /usr/src/app
-
-# Copy the requirements.txt file into the container at /usr/src/app
-COPY requirements.txt ./
+# Copy the requirements file into the container at /app
+COPY requirements.txt /app/
 
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of your application's code into the container at /usr/src/app
-COPY . .
+# Copy the current directory contents into the container at /app
+COPY . /app
 
-# You can set environment variables in the Dockerfile or via `docker run` command
-# ENV QB_URL=
-# ENV QB_USERNAME=
-# ENV QB_PASSWORD=
-# ENV CATEGORY_NAME=
-# ENV TAG_NAME=
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
 
-# Command to run the application
-CMD ["python", "./script.py"]
+# Run script.py when the container launches
+CMD ["python", "-u", "script.py"]
