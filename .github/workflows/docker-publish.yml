@@ -88,3 +88,24 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          
+  create-release:
+    needs: build  # This job runs after the build job
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')  # Ensures this job runs only for tagged commits with a version
+    steps:
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # This token is provided by Actions, no need to create a new one
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+          body: |
+            Changes in this Release
+            - First change
+            - Second change
+            - ...
