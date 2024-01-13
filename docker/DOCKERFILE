@@ -25,4 +25,4 @@ COPY . .
 # ENV TAG_NAME=
 
 # Command to run the application
-CMD ["python", "./your_script.py"]
+CMD ["python", "./script.py"]
