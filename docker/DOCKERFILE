@@ -15,6 +15,7 @@ COPY . /app
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
-
+ENV DRY_RUN=true
+ENV SCHEDULE=30
 # Run script.py when the container launches
 CMD ["python", "-u", "script.py"]

@@ -4,28 +4,14 @@ import requests
 import time
 from requests.exceptions import RequestException
 
-parser = argparse.ArgumentParser(
-    description="Set torrent share limits with a dry run option."
-)
-parser.add_argument(
-    "--dry-run",
-    action="store_true",
-    help="Perform a dry run without making any changes.",
-)
-parser.add_argument(
-    "--schedule",
-    type=int,
-    default=0,
-    help="Run the script every X minutes. Set to 0 to run just once.",
-)
-args = parser.parse_args()
-
 def get_env_variable(var_name):
     value = os.getenv(var_name)
     if value is None:
         raise EnvironmentError(f"The environment variable {var_name} is not set.")
     return value
 
+DRY_RUN = os.getenv('DRY_RUN', 'false').lower() in ['true', '1', 't']
+SCHEDULE = int(os.getenv('SCHEDULE', '30'))
 QB_URL = get_env_variable('QB_URL')
 QB_USERNAME = get_env_variable('QB_USERNAME')
 QB_PASSWORD = get_env_variable('QB_PASSWORD')
@@ -127,15 +113,15 @@ def main():
                     torrent["hash"],
                     original_torrent.get("seeding_time_limit", -1),
                     original_torrent.get("ratio_limit", -1),
-                    dry_run=args.dry_run,
+                    dry_run=DRY_RUN,
                 )
                 print("---")
 
 if __name__ == "__main__":
-    if args.schedule > 0:
+    if SCHEDULE > 0:
         while True:
             main()
-            print(f"Waiting for {args.schedule} minutes before next run.")
-            time.sleep(args.schedule * 60)
+            print(f"Waiting for {SCHEDULE} minutes before next run.")
+            time.sleep(SCHEDULE * 60)
     else:
         main()
