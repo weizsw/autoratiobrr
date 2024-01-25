@@ -103,7 +103,13 @@ def get_torrents_by_tag(url, tag_name):
         return None
 
 
-def set_torrent_seed_limits(url, torrent_hash, seed_time, share_ratio, dry_run=False):
+def set_torrent_seed_limits(
+    url,
+    torrent_hash,
+    seed_time,
+    share_ratio,
+    dry_run=False,
+):
     set_limits_url = f"{url}/api/v2/torrents/setShareLimits"
     headers = {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -116,7 +122,9 @@ def set_torrent_seed_limits(url, torrent_hash, seed_time, share_ratio, dry_run=F
     }
     if dry_run:
         print(
-            f"Dry run: Would set seed limits for torrent {torrent_hash} with seedingTimeLimit {seed_time} and ratioLimit {share_ratio}"
+            "Dry run: Would set seed limits for torrent "
+            + f"{torrent_hash} with seedingTimeLimit {seed_time} "
+            + f"and ratioLimit {share_ratio}"
         )
         return
     try:
@@ -127,6 +135,25 @@ def set_torrent_seed_limits(url, torrent_hash, seed_time, share_ratio, dry_run=F
             print("Failed to set seed limits")
     except RequestException as e:
         print(f"Error setting seed limits: {e}")
+
+
+def get_time_difference(added_on, seeding_time_limit):
+    # convert epoch time to datetime object
+    time = datetime.datetime.fromtimestamp(added_on)
+
+    # add minutes
+    new_time = time + datetime.timedelta(minutes=seeding_time_limit)
+
+    # get current time
+    current_time = datetime.datetime.now()
+
+    # calculate the difference
+    time_diff = new_time - current_time
+
+    # convert the difference to minutes and round it
+    minutes_diff = round(time_diff.total_seconds() / 60)
+
+    return -1 if minutes_diff <= 0 else minutes_diff
 
 
 def main():
@@ -144,15 +171,22 @@ def main():
             print(f"Hash: {torrent['hash']}")
             print("---")
             original_category = torrent["category"].split(".")[0]
-            original_torrents = get_torrents_by_category(QB_URL, original_category)
+            original_torrents = get_torrents_by_category(
+                QB_URL,
+                original_category,
+            )
             for original_torrent in original_torrents:
                 if original_torrent["name"] != torrent["name"]:
                     continue
                 print(f"Found original torrent: {original_torrent['hash']}")
+                seeding_time_limit = get_time_difference(
+                    original_torrent["added_on"],
+                    original_torrent["seeding_time_limit"],
+                )
                 set_torrent_seed_limits(
                     QB_URL,
                     torrent["hash"],
-                    original_torrent.get("seeding_time_limit", -1),
+                    seeding_time_limit,
                     original_torrent.get("ratio_limit", -1),
                     dry_run=DRY_RUN,
                 )
