@@ -139,13 +139,13 @@ def set_torrent_seed_limits(
 
 def get_time_difference(added_on, seeding_time_limit):
     # convert epoch time to datetime object
-    time = datetime.datetime.fromtimestamp(added_on)
+    time = datetime.fromtimestamp(added_on)
 
     # add minutes
-    new_time = time + datetime.timedelta(minutes=seeding_time_limit)
+    new_time = time + timedelta(minutes=seeding_time_limit)
 
     # get current time
-    current_time = datetime.datetime.now()
+    current_time = datetime.now()
 
     # calculate the difference
     time_diff = new_time - current_time
