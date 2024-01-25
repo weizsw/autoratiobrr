@@ -145,7 +145,8 @@ def get_time_difference(original_added_on, cross_added_on, seeding_time_limit):
     new_time = time + timedelta(minutes=seeding_time_limit)
 
     # calculate the difference
-    time_diff = new_time - cross_added_on
+    cross_time = time = datetime.fromtimestamp(cross_added_on)
+    time_diff = new_time - cross_time
 
     # convert the difference to minutes and round it
     minutes_diff = round(time_diff.total_seconds() / 60)
