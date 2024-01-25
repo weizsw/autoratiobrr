@@ -137,18 +137,15 @@ def set_torrent_seed_limits(
         print(f"Error setting seed limits: {e}")
 
 
-def get_time_difference(added_on, seeding_time_limit):
+def get_time_difference(original_added_on, cross_added_on, seeding_time_limit):
     # convert epoch time to datetime object
-    time = datetime.fromtimestamp(added_on)
+    time = datetime.fromtimestamp(original_added_on)
 
     # add minutes
     new_time = time + timedelta(minutes=seeding_time_limit)
 
-    # get current time
-    current_time = datetime.now()
-
     # calculate the difference
-    time_diff = new_time - current_time
+    time_diff = new_time - cross_added_on
 
     # convert the difference to minutes and round it
     minutes_diff = round(time_diff.total_seconds() / 60)
@@ -181,6 +178,7 @@ def main():
                 print(f"Found original torrent: {original_torrent['hash']}")
                 seeding_time_limit = get_time_difference(
                     original_torrent["added_on"],
+                    torrent["added_on"],
                     original_torrent["seeding_time_limit"],
                 )
                 set_torrent_seed_limits(
