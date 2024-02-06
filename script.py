@@ -195,7 +195,7 @@ def main():
                         QB_URL,
                         torrent["hash"],
                         seeding_time_limit,
-                        original_torrent.get("ratio_limit", -1),
+                        -1,
                         dry_run=DRY_RUN,
                     )
                     cache_torrent(torrent["hash"], cache)
