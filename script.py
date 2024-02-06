@@ -11,6 +11,13 @@ def get_env_variable(var_name):
     value = os.getenv(var_name)
     if value is None:
         raise EnvironmentError(f"The environment variable {var_name} is not set.")
+    try:
+        # Try to parse the value as JSON
+        value = json.loads(value)
+    except json.JSONDecodeError:
+        # If it's not a valid JSON string, just return the original string
+        pass
+
     return value
 
 
@@ -22,7 +29,7 @@ QB_URL = get_env_variable("QB_URL")
 QB_USERNAME = get_env_variable("QB_USERNAME")
 QB_PASSWORD = get_env_variable("QB_PASSWORD")
 CATEGORY_NAME = get_env_variable("CATEGORY_NAME")
-TAG_NAME = get_env_variable("TAG_NAME")
+TAG_NAMES = get_env_variable("TAG_NAMES")
 
 session = requests.Session()
 
@@ -156,44 +163,44 @@ def get_time_difference(original_added_on, cross_added_on, seeding_time_limit):
 
 def main():
     qb_login(QB_URL, QB_USERNAME, QB_PASSWORD)
-
-    cross_seed_torrents = get_torrents_by_tag(QB_URL, TAG_NAME)
     cache = read_cache()
     updated = False
-    if cross_seed_torrents:
-        for torrent in cross_seed_torrents:
-            if is_torrent_cached(torrent["hash"], cache):
-                continue
-            print(f"Name: {torrent['name']}")
-            print(f"State: {torrent['state']}")
-            print(f"Hash: {torrent['hash']}")
-            print("---")
-            original_category = torrent["category"].split(".")[0]
-            original_torrents = get_torrents_by_category(
-                QB_URL,
-                original_category,
-            )
-            for original_torrent in original_torrents:
-                if original_torrent["name"] != torrent["name"]:
+    for tag_name in TAG_NAMES:
+        cross_seed_torrents = get_torrents_by_tag(QB_URL, tag_name)
+        if cross_seed_torrents:
+            for torrent in cross_seed_torrents:
+                if is_torrent_cached(torrent["hash"], cache):
                     continue
-                print(f"Found original torrent: {original_torrent['hash']}")
-                seeding_time_limit = get_time_difference(
-                    original_torrent["added_on"],
-                    torrent["added_on"],
-                    original_torrent["seeding_time_limit"],
-                )
-                set_torrent_seed_limits(
-                    QB_URL,
-                    torrent["hash"],
-                    seeding_time_limit,
-                    original_torrent.get("ratio_limit", -1),
-                    dry_run=DRY_RUN,
-                )
-                cache_torrent(torrent["hash"], cache)
-                updated = True
+                print(f"Name: {torrent['name']}")
+                print(f"State: {torrent['state']}")
+                print(f"Hash: {torrent['hash']}")
                 print("---")
-    if not updated:
-        print("No torrents updated")
+                original_category = torrent["category"].split(".")[0]
+                original_torrents = get_torrents_by_category(
+                    QB_URL,
+                    original_category,
+                )
+                for original_torrent in original_torrents:
+                    if original_torrent["name"] != torrent["name"]:
+                        continue
+                    print(f"Found original torrent: {original_torrent['hash']}")
+                    seeding_time_limit = get_time_difference(
+                        original_torrent["added_on"],
+                        torrent["added_on"],
+                        original_torrent["seeding_time_limit"],
+                    )
+                    set_torrent_seed_limits(
+                        QB_URL,
+                        torrent["hash"],
+                        seeding_time_limit,
+                        original_torrent.get("ratio_limit", -1),
+                        dry_run=DRY_RUN,
+                    )
+                    cache_torrent(torrent["hash"], cache)
+                    updated = True
+                    print("---")
+        if not updated:
+            print("No torrents updated")
 
 
 if __name__ == "__main__":
