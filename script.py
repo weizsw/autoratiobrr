@@ -165,7 +165,9 @@ def main():
     qb_login(QB_URL, QB_USERNAME, QB_PASSWORD)
     cache = read_cache()
     updated = False
+    print(f"handling torrents with tags: {TAG_NAMES}")
     for tag_name in TAG_NAMES:
+        print(f"handling torrents with tag: {tag_name}")
         cross_seed_torrents = get_torrents_by_tag(QB_URL, tag_name)
         if cross_seed_torrents:
             for torrent in cross_seed_torrents:
