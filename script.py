@@ -187,7 +187,7 @@ def main():
                         continue
                     print(f"Found original torrent: {original_torrent['hash']}")
                     seeding_time_limit = get_time_difference(
-                        original_torrent["added_on"],
+                        original_torrent["completion_on"],
                         torrent["added_on"],
                         original_torrent["seeding_time_limit"],
                     )
