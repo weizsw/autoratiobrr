@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import time
 from datetime import datetime, timedelta
 
@@ -161,6 +162,12 @@ def get_time_difference(original_added_on, cross_added_on, seeding_time_limit):
     return -1 if minutes_diff <= 0 else minutes_diff
 
 
+def jaccard_similarity(str1, str2):
+    set1 = set(re.split("[., ]", str1.lower()))
+    set2 = set(re.split("[., ]", str2.lower()))
+    return len(set1.intersection(set2)) / len(set1.union(set2))
+
+
 def main():
     qb_login(QB_URL, QB_USERNAME, QB_PASSWORD)
     cache = read_cache()
@@ -183,7 +190,14 @@ def main():
                     original_category,
                 )
                 for original_torrent in original_torrents:
-                    if original_torrent["name"] != torrent["name"]:
+                    if (
+                        jaccard_similarity(
+                            original_torrent["name"],
+                            torrent["name"],
+                        )
+                        < 1
+                    ):
+                        # original_torrent["name"] != torrent["name"]:
                         continue
                     print(f"Found original torrent: {original_torrent['hash']}")
                     seeding_time_limit = get_time_difference(
