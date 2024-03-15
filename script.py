@@ -163,6 +163,16 @@ def get_time_difference(original_added_on, cross_added_on, seeding_time_limit):
 
 
 def jaccard_similarity(str1, str2):
+    # List of known video file extensions
+    video_extensions = [".mkv", ".mp4", ".avi", ".mov", ".flv", ".wmv"]
+
+    # Remove video file extension if it exists
+    for ext in video_extensions:
+        if str1.lower().endswith(ext):
+            str1 = str1[: -len(ext)]
+        if str2.lower().endswith(ext):
+            str2 = str2[: -len(ext)]
+
     set1 = set(re.split("[., ]", str1.lower()))
     set2 = set(re.split("[., ]", str2.lower()))
     return len(set1.intersection(set2)) / len(set1.union(set2))
