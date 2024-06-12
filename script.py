@@ -40,7 +40,15 @@ def read_cache():
         return {}
     try:
         with open(CACHE_FILE, "r") as f:
-            return json.load(f)
+            cache = json.load(f)
+            # Remove expired cache entries
+            now = datetime.now()
+            cache = {
+                k: v
+                for k, v in cache.items()
+                if datetime.fromisoformat(v) + timedelta(days=CACHE_EXPIRY_DAYS) > now
+            }
+            return cache
     except json.JSONDecodeError:
         # If there is a JSON decode error, return an empty dictionary
         return {}
@@ -53,11 +61,7 @@ def write_cache(cache):
 
 def is_torrent_cached(torrent_hash, cache):
     """Check if the torrent is in the cache and if the cache is still valid."""
-    if torrent_hash in cache:
-        cached_time = datetime.fromisoformat(cache[torrent_hash])
-        if datetime.now() < cached_time + timedelta(days=CACHE_EXPIRY_DAYS):
-            return True
-    return False
+    return torrent_hash in cache
 
 
 def cache_torrent(torrent_hash, cache):
