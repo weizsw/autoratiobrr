@@ -104,22 +104,28 @@ def get_torrents_excluding_category_and_tag(url, category_name, tag_name):
     session = requests.Session()
     torrents_url = f"{url}/api/v2/torrents/info"
     params = {"filter": "all"}
+
     try:
         response = session.get(torrents_url, params=params)
         if response.ok:
             torrents = response.json()
-            # Filter out torrents with the given category_name and tag_name
+            # Prepare the tag_name to be searched within torrent tags
+            tag_to_exclude = tag_name.strip()
+
             filtered_torrents = [
                 torrent
                 for torrent in torrents
-                if torrent.get("category") != category_name
-                and tag_name not in torrent.get("tags", [])
+                if (
+                    torrent.get("category") != category_name
+                    and tag_to_exclude
+                    not in [tag.strip() for tag in torrent.get("tags", "").split(",")]
+                )
             ]
             return filtered_torrents
         else:
-            print("Could not get torrent list")
+            print("Could not get torrent list. Status code:", response.status_code)
             return None
-    except RequestException as e:
+    except requests.RequestException as e:
         print(f"Error retrieving torrents: {e}")
         return None
 
@@ -211,9 +217,9 @@ def main():
     qb_login(QB_URL, QB_USERNAME, QB_PASSWORD)
     cache = read_cache()
     updated = False
-    print(f"handling torrents with tags: {CAT_NAMES}")
+    print(f"handling torrents with cat: {CAT_NAMES}")
     for cat_name in CAT_NAMES:
-        print(f"handling torrents with tag: {cat_name}")
+        print(f"handling torrents with cat: {cat_name}")
         cross_seed_torrents = get_torrents_by_category(QB_URL, cat_name)
         if cross_seed_torrents:
             for torrent in cross_seed_torrents:
@@ -229,6 +235,8 @@ def main():
                     original_category,
                     "cross-seed",
                 )
+                if not original_torrents:
+                    continue
                 for original_torrent in original_torrents:
                     if (
                         jaccard_similarity(
