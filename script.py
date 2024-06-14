@@ -101,7 +101,6 @@ def get_torrents_by_category(url, category_name):
 
 
 def get_torrents_excluding_category_and_tag(url, category_name, tag_name):
-    session = requests.Session()
     torrents_url = f"{url}/api/v2/torrents/info"
     params = {"filter": "all"}
 
