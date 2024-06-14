@@ -31,6 +31,7 @@ QB_USERNAME = get_env_variable("QB_USERNAME")
 QB_PASSWORD = get_env_variable("QB_PASSWORD")
 CATEGORY_NAME = get_env_variable("CATEGORY_NAME")
 TAG_NAMES = get_env_variable("TAG_NAMES")
+CAT_NAMES = get_env_variable("CAT_NAMES")
 
 session = requests.Session()
 
@@ -40,7 +41,15 @@ def read_cache():
         return {}
     try:
         with open(CACHE_FILE, "r") as f:
-            return json.load(f)
+            cache = json.load(f)
+            # Remove expired cache entries
+            now = datetime.now()
+            cache = {
+                k: v
+                for k, v in cache.items()
+                if datetime.fromisoformat(v) + timedelta(days=CACHE_EXPIRY_DAYS) > now
+            }
+            return cache
     except json.JSONDecodeError:
         # If there is a JSON decode error, return an empty dictionary
         return {}
@@ -53,11 +62,7 @@ def write_cache(cache):
 
 def is_torrent_cached(torrent_hash, cache):
     """Check if the torrent is in the cache and if the cache is still valid."""
-    if torrent_hash in cache:
-        cached_time = datetime.fromisoformat(cache[torrent_hash])
-        if datetime.now() < cached_time + timedelta(days=CACHE_EXPIRY_DAYS):
-            return True
-    return False
+    return torrent_hash in cache
 
 
 def cache_torrent(torrent_hash, cache):
@@ -87,6 +92,30 @@ def get_torrents_by_category(url, category_name):
         if response.ok:
             torrents = response.json()
             return torrents
+        else:
+            print("Could not get torrent list")
+            return None
+    except RequestException as e:
+        print(f"Error retrieving torrents: {e}")
+        return None
+
+
+def get_torrents_excluding_category_and_tag(url, category_name, tag_name):
+    session = requests.Session()
+    torrents_url = f"{url}/api/v2/torrents/info"
+    params = {"filter": "all"}
+    try:
+        response = session.get(torrents_url, params=params)
+        if response.ok:
+            torrents = response.json()
+            # Filter out torrents with the given category_name and tag_name
+            filtered_torrents = [
+                torrent
+                for torrent in torrents
+                if torrent.get("category") != category_name
+                and tag_name not in torrent.get("tags", [])
+            ]
+            return filtered_torrents
         else:
             print("Could not get torrent list")
             return None
@@ -182,10 +211,10 @@ def main():
     qb_login(QB_URL, QB_USERNAME, QB_PASSWORD)
     cache = read_cache()
     updated = False
-    print(f"handling torrents with tags: {TAG_NAMES}")
-    for tag_name in TAG_NAMES:
-        print(f"handling torrents with tag: {tag_name}")
-        cross_seed_torrents = get_torrents_by_tag(QB_URL, tag_name)
+    print(f"handling torrents with tags: {CAT_NAMES}")
+    for cat_name in CAT_NAMES:
+        print(f"handling torrents with tag: {cat_name}")
+        cross_seed_torrents = get_torrents_by_category(QB_URL, cat_name)
         if cross_seed_torrents:
             for torrent in cross_seed_torrents:
                 if is_torrent_cached(torrent["hash"], cache):
@@ -194,10 +223,11 @@ def main():
                 print(f"State: {torrent['state']}")
                 print(f"Hash: {torrent['hash']}")
                 print("---")
-                original_category = torrent["category"].split(".")[0]
-                original_torrents = get_torrents_by_category(
+                original_category = cat_name
+                original_torrents = get_torrents_excluding_category_and_tag(
                     QB_URL,
                     original_category,
+                    "cross-seed",
                 )
                 for original_torrent in original_torrents:
                     if (
