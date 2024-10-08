@@ -193,7 +193,7 @@ def get_time_difference(original_added_on, cross_added_on, seeding_time_limit):
     # convert the difference to minutes and round it
     minutes_diff = round(time_diff.total_seconds() / 60)
 
-    return -1 if minutes_diff <= 0 else minutes_diff
+    return -2 if minutes_diff <= 0 else minutes_diff
 
 
 def jaccard_similarity(str1, str2):
